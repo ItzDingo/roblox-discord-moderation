@@ -10,4 +10,4 @@ async function getById(id){const r=await pool.query('SELECT * FROM bans WHERE id
 async function getRecentCompleted(){const r=await pool.query("SELECT * FROM bans WHERE status='unbanned' AND executed_at > NOW() - INTERVAL '2 minutes' ORDER BY executed_at DESC");return r.rows}
 async function getRecentResolved(){const r=await pool.query("SELECT * FROM bans WHERE status IN ('active','unbanned','failed') AND discord_message_id IS NOT NULL AND updated_notified IS NOT TRUE ORDER BY id ASC");return r.rows}
 async function markNotified(id){await pool.query('UPDATE bans SET updated_notified=TRUE WHERE id=$1',[id])}
-module.exports={pool,initDb,active,createBan,setDiscordMessage,setStatus,getPending,getById,getRecentCompleted};
+module.exports={pool,initDb,active,createBan,setDiscordMessage,setStatus,getPending,getById,getRecentCompleted,getRecentResolved,markNotified};
