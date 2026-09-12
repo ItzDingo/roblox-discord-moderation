@@ -13,13 +13,14 @@ app.get('/api/pending', secret, async (_, res) => { try { res.json(await getPend
 app.post('/api/complete', secret, async (req, res) => { try { const { banId, status, error } = req.body; if (!banId || !['active', 'unbanned', 'failed'].includes(status)) return res.status(400).json({ error: 'invalid' }); await setStatus(banId, status, error); res.json({ ok: true }) } catch (e) { res.status(500).json({ error: e.message }) } });
 
 // ---------- Bot ----------
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const ids = () => new Set((process.env.ALLOWED_ROLE_IDS || '').split(',').map(x => x.trim()).filter(Boolean));
-function allowed(m) { return m.member?.roles.cache.some(r => ids().has(r.id)) || false }
+async function allowed(m) { if (!m) return false; let member = m; if (!member.roles || !member.roles.cache || member.roles.cache.size === 0) { try { member = await member.guild.members.fetch(member.id || member.user?.id) } catch (e) { return false } } return member.roles.cache.some(r => ids().has(r.id)) }
 async function queueUnban(userId, sourceMessage) { const row = await active(userId); if (!row || !['active', 'pending', 'unban_pending'].includes(row.status)) throw new Error('No active ban found.'); await setStatus(row.id, 'unban_pending'); await publishCommand({ action: 'unban', banId: row.id, userId: Number(userId) }); if (sourceMessage) { const e = EmbedBuilder.from(sourceMessage.embeds[0] || {}).setColor(0xF59E0B).setFooter({ text: 'Unban requested…' }); await sourceMessage.edit({ embeds: [e], components: [] }) } return row }
 
 client.on('messageCreate', async m => {
-  if (m.author.bot || !m.guild || m.guild.id !== process.env.DISCORD_GUILD_ID || m.channel.id !== process.env.MOD_CHANNEL_ID || !allowed(m)) return;
+  if (m.author.bot || !m.guild || m.guild.id !== process.env.DISCORD_GUILD_ID || m.channel.id !== process.env.MOD_CHANNEL_ID) return;
+  if (!(await allowed(m.member))) return;
   const p = m.content.trim().split(/\s+/); const cmd = p.shift()?.toLowerCase();
   if (cmd !== '!ban' && cmd !== '!unban') return;
   await m.delete().catch(() => {});
@@ -57,7 +58,7 @@ client.on('messageCreate', async m => {
 client.on('interactionCreate', async i => {
   if (!i.isButton() || !i.customId.startsWith('unban:')) return;
   try { await i.deferUpdate() } catch (e) { console.error('deferUpdate failed (interaction likely expired):', e.message); return }
-  if (!allowed(i.member)) { await i.followUp({ content: 'You are not allowed to unban players.', ephemeral: true }); return }
+  if (!(await allowed(i.member))) { await i.followUp({ content: 'You are not allowed to unban players.', ephemeral: true }); return }
   const userId = i.customId.split(':')[1];
   try { await queueUnban(userId, i.message) }
   catch (e) { await i.followUp({ content: `❌ ${e.message}`, ephemeral: true }) }
