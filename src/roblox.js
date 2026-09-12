@@ -1,0 +1,6 @@
+const BASE='https://apis.roblox.com';
+function required(){for(const k of ['ROBLOX_UNIVERSE_ID','ROBLOX_OPEN_CLOUD_API_KEY']) if(!process.env[k]) throw new Error(`Missing ${k}`)}
+async function publishCommand(command){required();const r=await fetch(`${BASE}/cloud/v2/universes/${process.env.ROBLOX_UNIVERSE_ID}:publishMessage`,{method:'POST',headers:{'x-api-key':process.env.ROBLOX_OPEN_CLOUD_API_KEY,'content-type':'application/json'},body:JSON.stringify({topic:process.env.ROBLOX_MESSAGE_TOPIC||'ModerationCommand_v1',message:JSON.stringify(command)})});if(!r.ok) throw new Error(`Roblox Open Cloud ${r.status}: ${await r.text()}`)}
+async function getUser(userId){const r=await fetch(`https://users.roblox.com/v1/users/${userId}`);if(!r.ok) throw new Error('Roblox user not found');return r.json()}
+async function getAvatar(userId){const r=await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=true`);if(!r.ok)return null;const j=await r.json();return j.data?.[0]?.imageUrl||null}
+module.exports={publishCommand,getUser,getAvatar};
