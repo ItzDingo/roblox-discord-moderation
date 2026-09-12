@@ -1,0 +1,1 @@
+{"name":"roblox-discord-moderation","version":"2.0.0","private":true,"type":"commonjs","scripts":{"start:api":"node src/api.js","start:bot":"node src/bot.js","start:all":"node src/combined.js","start":"node src/api.js"},"engines":{"node":">=22 <26"},"dependencies":{"discord.js":"^14.21.0","express":"^5.1.0","pg":"^8.16.3","dotenv":"^17.2.1"}}
