@@ -3,6 +3,7 @@ const express = require('express');
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { initDb, active, createBan, setDiscordMessage, setStatus, getPending, getRecentResolved, markNotified } = require('./db');
 const { publishCommand, getUser, getAvatar, isCurrentlyBanned } = require('./roblox');
+const { startDiscord } = require('./discord-startup');
 
 // ---------- API ----------
 const app = express();
@@ -96,8 +97,7 @@ client.on('interactionCreate', async i => {
 (async () => {
   await initDb();
   app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('API listening'));
-  await client.login(process.env.DISCORD_TOKEN);
-  console.log('Bot logged in');
+  await startDiscord(client);
   setInterval(async () => {
     try {
       const rows = await getRecentResolved();
